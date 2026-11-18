@@ -424,7 +424,7 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
   }, [services, newService, newSize]);
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-800">
+    <div className="min-h-screen bg-slate-100 text-slate-800 overflow-x-hidden">
       {/* Top Bar */}
       <header className="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-xs">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3">
@@ -502,7 +502,7 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
         )}
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-1.5 shadow-xs">
             <div className="flex items-center justify-between">
               <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
@@ -566,8 +566,27 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
+        {/* Mobile Section Select */}
+        <div className="md:hidden">
+          <label htmlFor="admin-mobile-tab" className="sr-only">
+            Sezione Admin
+          </label>
+          <select
+            id="admin-mobile-tab"
+            value={tab}
+            onChange={(e) => setTab(e.target.value as AdminTab)}
+            className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-slate-300 text-sm font-black text-slate-900 shadow-xs"
+          >
+            <option value="agenda">Agenda &amp; Postazioni ({bookings.length})</option>
+            <option value="clienti">Clienti &amp; Cani ({clientDirectory.length})</option>
+            <option value="richiami">Richiami manto ({pendingRecalls})</option>
+            <option value="listino">Listino &amp; Servizi</option>
+            <option value="nuovo">+ Nuovo appuntamento</option>
+          </select>
+        </div>
+
+        {/* Desktop Navigation Tabs */}
+        <div className="hidden md:flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
           <button
             type="button"
             onClick={() => setTab("agenda")}
@@ -628,9 +647,9 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
         {/* TAB 1: AGENDA & POSTAZIONI */}
         {tab === "agenda" && (
           <div className="space-y-4">
-            <div className="bg-white rounded-2xl border border-slate-200 p-3 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="inline-flex rounded-xl bg-slate-100 p-0.5 border border-slate-200">
+            <div className="bg-white rounded-2xl border border-slate-200 p-3 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+              <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2">
+                <div className="grid grid-cols-2 sm:inline-flex rounded-xl bg-slate-100 p-0.5 border border-slate-200">
                   <button
                     type="button"
                     onClick={() => setAgendaView("lista")}

@@ -194,7 +194,7 @@ export default function ToelettaturaDemoPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f6efe6] text-stone-800">
+    <div className="min-h-screen bg-[#f6efe6] text-stone-800 overflow-x-hidden">
       {/* Top Navbar */}
       <nav className="bg-amber-950 text-amber-50 px-3 sm:px-6 py-2.5 sticky top-0 z-40 border-b border-amber-900/80">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
@@ -366,7 +366,7 @@ export default function ToelettaturaDemoPage() {
 
                   <div>
                     <label className="text-xs font-bold block mb-1">Orario disponibile</label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {slots.map((item) => (
                         <button
                           type="button"
@@ -384,7 +384,7 @@ export default function ToelettaturaDemoPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <input
                       value={petName}
                       onChange={(e) => setPetName(e.target.value)}
@@ -696,8 +696,21 @@ export default function ToelettaturaDemoPage() {
       </section>
 
       {/* Sezione 6: Contatti & Footer */}
-      <footer id="contatti" className="bg-stone-900 text-stone-300 py-10">
-        <div className="max-w-6xl mx-auto px-3 sm:px-4 grid sm:grid-cols-3 gap-6 items-start">
+      <footer id="contatti" className="bg-stone-900 text-stone-300 pt-10 pb-24 sm:py-10">
+        <div className="max-w-6xl mx-auto px-3 sm:px-4 grid grid-cols-1 sm:grid-cols-3 gap-6 items-start">
+          <div className="space-y-2.5 text-left">
+            <p className="text-xs text-stone-400 inline-flex items-center gap-1.5">
+              <HeartHandshake className="w-3.5 h-3.5 text-amber-400" /> Gestione interna staff
+            </p>
+            <div>
+              <Link
+                href="/admin"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition"
+              >
+                <ShieldCheck className="w-3.5 h-3.5" /> Accedi all&apos;Area Admin
+              </Link>
+            </div>
+          </div>
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-white font-black text-base">
               <Scissors className="w-4 h-4 text-amber-400" /> {SALON_CONFIG.salonName}
@@ -714,19 +727,6 @@ export default function ToelettaturaDemoPage() {
             <p className="flex items-center gap-1.5">
               <Phone className="w-3.5 h-3.5 text-amber-400" /> +39 02 4590 1122 · WhatsApp attivo
             </p>
-          </div>
-          <div className="sm:text-right space-y-2">
-            <p className="text-xs text-stone-400 inline-flex items-center gap-1.5">
-              <HeartHandshake className="w-3.5 h-3.5 text-amber-400" /> Gestione interna staff
-            </p>
-            <div>
-              <Link
-                href="/admin"
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition"
-              >
-                <ShieldCheck className="w-3.5 h-3.5" /> Accedi all&apos;Area Admin
-              </Link>
-            </div>
           </div>
         </div>
       </footer>
