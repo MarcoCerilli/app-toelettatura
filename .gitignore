@@ -8,3 +8,4 @@ coverage/
 *:Zone.Identifier
 tsconfig.tsbuildinfo
 public/clip/*-sorgente.mp4
+.data/

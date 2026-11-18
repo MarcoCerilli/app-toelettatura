@@ -1,3 +1,10 @@
+export type GroomingBookingStatus =
+  | "Confermato WhatsApp"
+  | "In arrivo"
+  | "In salone"
+  | "Completato"
+  | "Richiamo manto";
+
 export interface GroomingBooking {
   id: string;
   pet: string;
@@ -8,10 +15,10 @@ export interface GroomingBooking {
   station: "Vasca" | "Tosatura" | "Finishing";
   time: string;
   price: number;
-  status: "Confermato WhatsApp";
+  status: GroomingBookingStatus;
 }
 
-const KEY = "casa-manto-bookings";
+const KEY = "app-toelettatura-bookings";
 
 export function stationFor(service: string): GroomingBooking["station"] {
   if (service.includes("Bagno")) return "Vasca";
@@ -39,4 +46,9 @@ export function readGroomingBookings(): GroomingBooking[] {
 export function saveGroomingBooking(booking: GroomingBooking) {
   const next = [booking, ...readGroomingBookings()];
   window.localStorage.setItem(KEY, JSON.stringify(next));
+}
+
+export function clearGroomingBookings() {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(KEY);
 }
