@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth";
-import { addBooking, AVAILABLE_SLOTS, getBookings, getServices } from "@/lib/server-store";
+import {
+  addBooking,
+  AVAILABLE_SLOTS,
+  getBookings,
+  getServices,
+  hasStationConflict,
+  inferScheduleFromText,
+} from "@/lib/server-store";
 
 const ALLOWED_SIZES = ["Piccola", "Media", "Grande"] as const;
 
@@ -21,6 +28,10 @@ export async function POST(req: Request) {
       phone?: unknown;
       service?: unknown;
       time?: unknown;
+      station?: unknown;
+      dateIso?: unknown;
+      startTime?: unknown;
+      petTags?: unknown;
       source?: unknown;
       notes?: unknown;
     };
@@ -64,6 +75,42 @@ export async function POST(req: Request) {
       (source === "bot" ? "Prenotazione Bot AI" : source === "admin" ? "Inserita da banco" : "Prenotazione dal sito");
 
     const notes = typeof body.notes === "string" ? body.notes.trim().slice(0, 200) : undefined;
+    const station =
+      body.station === "Vasca" || body.station === "Tosatura" || body.station === "Finishing"
+        ? body.station
+        : undefined;
+    const dateIso =
+      typeof body.dateIso === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.dateIso)
+        ? body.dateIso
+        : undefined;
+    const startTime =
+      typeof body.startTime === "string" && /^\d{2}:\d{2}$/.test(body.startTime)
+        ? body.startTime
+        : undefined;
+    const petTags = Array.isArray(body.petTags)
+      ? body.petTags.filter((t): t is string => typeof t === "string")
+      : undefined;
+
+    const targetStation = station || matchedService.station;
+    const inferred = inferScheduleFromText(time);
+    const resolvedDateIso = dateIso || inferred.dateIso;
+    const resolvedStartTime = startTime || inferred.startTime;
+
+    const conflict = hasStationConflict({
+      dateIso: resolvedDateIso,
+      startTime: resolvedStartTime,
+      durationMin: matchedService.durationMin,
+      station: targetStation,
+    });
+
+    if (conflict) {
+      return NextResponse.json(
+        {
+          error: `La postazione ${targetStation} è già occupata alle ${resolvedStartTime} (${conflict.pet}). Scegli un altro orario disponibile.`,
+        },
+        { status: 409 }
+      );
+    }
 
     const booking = addBooking({
       pet,
@@ -72,6 +119,10 @@ export async function POST(req: Request) {
       phone,
       service: matchedService.title,
       time,
+      station: targetStation,
+      dateIso: resolvedDateIso,
+      startTime: resolvedStartTime,
+      petTags,
       source,
       notes,
     });

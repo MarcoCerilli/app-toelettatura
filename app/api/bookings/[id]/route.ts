@@ -23,12 +23,18 @@ export async function PATCH(
       station?: GroomingBooking["station"];
       notes?: string;
       time?: string;
+      dateIso?: string;
+      startTime?: string;
+      petTags?: string[];
     };
     const updated = updateBooking(id, {
       status: body.status,
       station: body.station,
       notes: body.notes,
       time: body.time,
+      dateIso: body.dateIso,
+      startTime: body.startTime,
+      petTags: body.petTags,
     });
     if (!updated) {
       return NextResponse.json({ error: "Appuntamento non trovato" }, { status: 404 });

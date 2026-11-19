@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth";
 import { getPublicSlotAvailability, getServices, updateService } from "@/lib/server-store";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const serviceParam = searchParams.get("service") || undefined;
   return NextResponse.json({
     services: getServices(),
-    slots: getPublicSlotAvailability(),
+    slots: getPublicSlotAvailability(serviceParam),
   });
 }
 

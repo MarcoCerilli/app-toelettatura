@@ -34,6 +34,9 @@ import {
 import { SALON_CONFIG } from "@/lib/salon-config";
 import type { GroomingBookingStatus } from "@/lib/grooming-bookings";
 import type { BookingRecord, RecallItem, SalonService } from "@/lib/server-store";
+import { AdminCalendarGrid } from "@/components/AdminCalendarGrid";
+
+const PET_TAGS = ["Nodi", "Paura phon", "Cucciolo", "Sensibile", "Mordace"] as const;
 
 interface AdminDashboardClientProps {
   userEmail: string;
@@ -69,7 +72,7 @@ function sourceBadge(source?: BookingRecord["source"]) {
   }
   if (source === "admin") {
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-stone-700 border border-amber-200/80">
         <Monitor className="w-3 h-3" /> Banco
       </span>
     );
@@ -84,7 +87,7 @@ function sourceBadge(source?: BookingRecord["source"]) {
 export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClientProps) {
   const router = useRouter();
   const [tab, setTab] = useState<AdminTab>("agenda");
-  const [agendaView, setAgendaView] = useState<"lista" | "postazioni">("lista");
+  const [agendaView, setAgendaView] = useState<"calendario" | "lista" | "postazioni">("calendario");
   const [stationFilter, setStationFilter] = useState<"tutte" | Station>("tutte");
   const [statusFilter, setStatusFilter] = useState<"tutti" | GroomingBookingStatus>("tutti");
   const [sourceFilter, setSourceFilter] = useState<"tutti" | "bot" | "sito" | "admin">("tutti");
@@ -110,7 +113,16 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
   const [newPhone, setNewPhone] = useState("");
   const [newSize, setNewSize] = useState<"Piccola" | "Media" | "Grande">("Media");
   const [newService, setNewService] = useState("Tosatura completa");
-  const [newTime, setNewTime] = useState("Oggi ore 15:00");
+  const [newStation, setNewStation] = useState<"" | Station>("");
+  const [newDateIso, setNewDateIso] = useState(() => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  });
+  const [newStartTime, setNewStartTime] = useState("15:00");
+  const [newPetTags, setNewPetTags] = useState<string[]>([]);
   const [newNotes, setNewNotes] = useState("");
 
   // New recall form
@@ -235,7 +247,7 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
 
   const updateBookingPatch = async (
     id: string,
-    patch: Partial<Pick<BookingRecord, "status" | "station" | "notes">>,
+    patch: Partial<Pick<BookingRecord, "status" | "station" | "notes" | "petTags">>,
     feedback?: string
   ) => {
     const res = await fetch(`/api/bookings/${encodeURIComponent(id)}`, {
@@ -277,7 +289,11 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
         phone: newPhone.trim() || "+39 347 220 1188",
         size: newSize,
         service: newService,
-        time: newTime,
+        station: newStation || undefined,
+        dateIso: newDateIso,
+        startTime: newStartTime,
+        time: `${newDateIso} ore ${newStartTime}`,
+        petTags: newPetTags,
         notes: newNotes.trim() || undefined,
         source: "admin",
       }),
@@ -290,6 +306,8 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
       setNewOwner("");
       setNewPhone("");
       setNewNotes("");
+      setNewStation("");
+      setNewPetTags([]);
       setTab("agenda");
       showToast(`Appuntamento per ${data.booking.pet} aggiunto in agenda.`);
     }
@@ -424,17 +442,17 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
   }, [services, newService, newSize]);
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-800 overflow-x-hidden">
+    <div className="min-h-screen bg-[#f6efe6] text-stone-800 overflow-x-hidden">
       {/* Top Bar */}
-      <header className="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-xs">
+      <header className="sticky top-0 z-30 bg-white border-b border-amber-200/80 shadow-xs">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-teal-700 text-white flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-amber-800 text-white flex items-center justify-center shrink-0">
               <Scissors className="w-5 h-5" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h1 className="font-black text-base text-slate-900 leading-none truncate">
+                <h1 className="font-black text-base text-stone-900 leading-none truncate">
                   Admin {SALON_CONFIG.shortName}
                 </h1>
                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold">
@@ -442,7 +460,7 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
                   {autoRefresh ? "Live" : "Manuale"}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 mt-0.5 truncate">
+              <p className="text-[11px] text-stone-500 mt-0.5 truncate">
                 {userName} ({userEmail}) · Aggiornato {lastUpdated}
               </p>
             </div>
@@ -455,7 +473,7 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
               className={`hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition ${
                 autoRefresh
                   ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-                  : "bg-white border-slate-200 text-slate-500"
+                  : "bg-white border-amber-200/80 text-stone-500"
               }`}
               title="Attiva o disattiva aggiornamento automatico ogni 10 secondi"
             >
@@ -466,7 +484,7 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
               type="button"
               onClick={() => loadAll(true)}
               disabled={refreshing}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 border border-teal-200 text-teal-900 text-xs font-bold transition disabled:opacity-60"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-950 text-xs font-bold transition disabled:opacity-60"
               title="Aggiorna subito agenda e richieste dal sito/bot"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
@@ -483,7 +501,7 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
             <button
               type="button"
               onClick={handleLogout}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition"
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-amber-950 hover:bg-amber-900 text-white text-xs font-bold transition"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Esci</span>
@@ -494,7 +512,7 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
 
       <main className="max-w-7xl mx-auto px-3 sm:px-6 py-6 space-y-6">
         {toast && (
-          <div className="rounded-2xl bg-teal-900 text-teal-50 px-4 py-3 text-xs font-semibold flex items-center justify-between gap-2 shadow-lg">
+          <div className="rounded-2xl bg-amber-950 text-amber-50 px-4 py-3 text-xs font-semibold flex items-center justify-between gap-2 shadow-lg">
             <span className="inline-flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-amber-300 shrink-0" /> {toast}
             </span>
@@ -503,28 +521,28 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-1.5 shadow-xs">
+          <div className="bg-white rounded-2xl border border-amber-200/80 p-4 space-y-1.5 shadow-xs">
             <div className="flex items-center justify-between">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-stone-400">
                 Appuntamenti
               </p>
-              <Calendar className="w-4 h-4 text-teal-600" />
+              <Calendar className="w-4 h-4 text-amber-700" />
             </div>
-            <p className="text-2xl font-black text-slate-900">{bookings.length}</p>
-            <p className="text-[11px] text-slate-500">
+            <p className="text-2xl font-black text-stone-900">{bookings.length}</p>
+            <p className="text-[11px] text-stone-500">
               {botCount} da Bot AI · {bookings.length - botCount} da Sito/Banco
             </p>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-1.5 shadow-xs">
+          <div className="bg-white rounded-2xl border border-amber-200/80 p-4 space-y-1.5 shadow-xs">
             <div className="flex items-center justify-between">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-stone-400">
                 Incasso previsto
               </p>
               <Euro className="w-4 h-4 text-emerald-600" />
             </div>
             <div className="flex items-baseline gap-2">
-              <p className="text-2xl font-black text-teal-700">{totalRevenue} €</p>
+              <p className="text-2xl font-black text-amber-800">{totalRevenue} €</p>
               <span className="text-[11px] font-bold text-emerald-700">
                 ({completedRevenue} € chiusi)
               </span>
@@ -537,30 +555,30 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-1.5 shadow-xs">
+          <div className="bg-white rounded-2xl border border-amber-200/80 p-4 space-y-1.5 shadow-xs">
             <div className="flex items-center justify-between">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-stone-400">
                 In salone ora
               </p>
               <Dog className="w-4 h-4 text-amber-600" />
             </div>
             <p className="text-2xl font-black text-amber-700">{inSalonCount}</p>
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[11px] text-stone-500">
               Vasca {bookings.filter((b) => b.station === "Vasca").length} · Tosatura{" "}
               {bookings.filter((b) => b.station === "Tosatura").length} · Finishing{" "}
               {bookings.filter((b) => b.station === "Finishing").length}
             </p>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-1.5 shadow-xs">
+          <div className="bg-white rounded-2xl border border-amber-200/80 p-4 space-y-1.5 shadow-xs">
             <div className="flex items-center justify-between">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-stone-400">
                 Richiami 6–8 sett.
               </p>
               <MessageSquare className="w-4 h-4 text-violet-600" />
             </div>
-            <p className="text-2xl font-black text-slate-900">{pendingRecalls}</p>
-            <p className="text-[11px] text-slate-500">
+            <p className="text-2xl font-black text-stone-900">{pendingRecalls}</p>
+            <p className="text-[11px] text-stone-500">
               {recalls.length - pendingRecalls} già inviati su WhatsApp
             </p>
           </div>
@@ -575,7 +593,7 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
             id="admin-mobile-tab"
             value={tab}
             onChange={(e) => setTab(e.target.value as AdminTab)}
-            className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-slate-300 text-sm font-black text-slate-900 shadow-xs"
+            className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-amber-200 text-sm font-black text-stone-900 shadow-xs"
           >
             <option value="agenda">Agenda &amp; Postazioni ({bookings.length})</option>
             <option value="clienti">Clienti &amp; Cani ({clientDirectory.length})</option>
@@ -586,14 +604,14 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
         </div>
 
         {/* Desktop Navigation Tabs */}
-        <div className="hidden md:flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
+        <div className="hidden md:flex flex-wrap items-center gap-2 border-b border-amber-200/80 pb-3">
           <button
             type="button"
             onClick={() => setTab("agenda")}
             className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition ${
               tab === "agenda"
-                ? "bg-teal-700 text-white shadow-xs"
-                : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                ? "bg-amber-800 text-white shadow-xs"
+                : "bg-white border border-amber-200/80 text-stone-600 hover:bg-[#fbf7f1]"
             }`}
           >
             <Calendar className="w-3.5 h-3.5" /> Agenda & Postazioni
@@ -603,8 +621,8 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
             onClick={() => setTab("clienti")}
             className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition ${
               tab === "clienti"
-                ? "bg-teal-700 text-white shadow-xs"
-                : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                ? "bg-amber-800 text-white shadow-xs"
+                : "bg-white border border-amber-200/80 text-stone-600 hover:bg-[#fbf7f1]"
             }`}
           >
             <Users className="w-3.5 h-3.5" /> Clienti & Cani ({clientDirectory.length})
@@ -614,8 +632,8 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
             onClick={() => setTab("richiami")}
             className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition ${
               tab === "richiami"
-                ? "bg-teal-700 text-white shadow-xs"
-                : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                ? "bg-amber-800 text-white shadow-xs"
+                : "bg-white border border-amber-200/80 text-stone-600 hover:bg-[#fbf7f1]"
             }`}
           >
             <MessageSquare className="w-3.5 h-3.5" /> Richiami manto ({pendingRecalls})
@@ -625,8 +643,8 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
             onClick={() => setTab("listino")}
             className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition ${
               tab === "listino"
-                ? "bg-teal-700 text-white shadow-xs"
-                : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                ? "bg-amber-800 text-white shadow-xs"
+                : "bg-white border border-amber-200/80 text-stone-600 hover:bg-[#fbf7f1]"
             }`}
           >
             <Settings2 className="w-3.5 h-3.5" /> Listino & Servizi
@@ -636,8 +654,8 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
             onClick={() => setTab("nuovo")}
             className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition ml-auto ${
               tab === "nuovo"
-                ? "bg-slate-900 text-white"
-                : "bg-teal-50 border border-teal-200 text-teal-900 hover:bg-teal-100"
+                ? "bg-amber-950 text-amber-50"
+                : "bg-amber-50 border border-amber-200 text-amber-950 hover:bg-amber-100"
             }`}
           >
             <Plus className="w-3.5 h-3.5" /> Nuovo appuntamento
@@ -647,14 +665,23 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
         {/* TAB 1: AGENDA & POSTAZIONI */}
         {tab === "agenda" && (
           <div className="space-y-4">
-            <div className="bg-white rounded-2xl border border-slate-200 p-3 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <div className="bg-white rounded-2xl border border-amber-200/80 p-3 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
               <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2">
-                <div className="grid grid-cols-2 sm:inline-flex rounded-xl bg-slate-100 p-0.5 border border-slate-200">
+                <div className="grid grid-cols-3 sm:inline-flex rounded-xl bg-slate-100 p-0.5 border border-amber-200/80">
+                  <button
+                    type="button"
+                    onClick={() => setAgendaView("calendario")}
+                    className={`inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition ${
+                      agendaView === "calendario" ? "bg-white text-stone-900 shadow-xs" : "text-stone-500"
+                    }`}
+                  >
+                    <Calendar className="w-3.5 h-3.5" /> Calendario
+                  </button>
                   <button
                     type="button"
                     onClick={() => setAgendaView("lista")}
-                    className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition ${
-                      agendaView === "lista" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500"
+                    className={`inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition ${
+                      agendaView === "lista" ? "bg-white text-stone-900 shadow-xs" : "text-stone-500"
                     }`}
                   >
                     <List className="w-3.5 h-3.5" /> Lista
@@ -662,8 +689,8 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
                   <button
                     type="button"
                     onClick={() => setAgendaView("postazioni")}
-                    className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition ${
-                      agendaView === "postazioni" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500"
+                    className={`inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition ${
+                      agendaView === "postazioni" ? "bg-white text-stone-900 shadow-xs" : "text-stone-500"
                     }`}
                   >
                     <Columns3 className="w-3.5 h-3.5" /> Postazioni
@@ -674,7 +701,7 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
                   <select
                     value={stationFilter}
                     onChange={(e) => setStationFilter(e.target.value as "tutte" | Station)}
-                    className="px-2.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold"
+                    className="px-2.5 py-1.5 rounded-xl bg-[#fbf7f1] border border-amber-200/80 text-xs font-semibold"
                   >
                     <option value="tutte">Tutte le postazioni</option>
                     {STATIONS.map((st) => (
@@ -690,7 +717,7 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
                   onChange={(e) =>
                     setStatusFilter(e.target.value as "tutti" | GroomingBookingStatus)
                   }
-                  className="px-2.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold"
+                  className="px-2.5 py-1.5 rounded-xl bg-[#fbf7f1] border border-amber-200/80 text-xs font-semibold"
                 >
                   <option value="tutti">Tutti gli stati</option>
                   {STATUS_ORDER.map((st) => (
@@ -705,7 +732,7 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
                   onChange={(e) =>
                     setSourceFilter(e.target.value as "tutti" | "bot" | "sito" | "admin")
                   }
-                  className="px-2.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold"
+                  className="px-2.5 py-1.5 rounded-xl bg-[#fbf7f1] border border-amber-200/80 text-xs font-semibold"
                 >
                   <option value="tutti">Tutti i canali</option>
                   <option value="bot">Solo Bot AI</option>
@@ -715,26 +742,39 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
               </div>
 
               <div className="relative w-full sm:w-64">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Cerca cane, cliente, telefono..."
-                  className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-[#fbf7f1] border border-amber-200/80 text-xs focus:outline-none focus:ring-2 focus:ring-amber-600"
                 />
               </div>
             </div>
 
             {loading ? (
-              <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center text-xs text-slate-500">
+              <div className="bg-white rounded-2xl border border-amber-200/80 p-10 text-center text-xs text-stone-500">
                 Caricamento agenda in corso...
               </div>
+            ) : agendaView === "calendario" ? (
+              <AdminCalendarGrid
+                bookings={visibleBookings}
+                onQuickBook={({ dateIso, startTime, station }) => {
+                  setNewDateIso(dateIso);
+                  setNewStartTime(startTime);
+                  setNewStation(station || "");
+                  setTab("nuovo");
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                onUpdateBooking={updateBookingPatch}
+                onDeleteBooking={removeBooking}
+              />
             ) : visibleBookings.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center text-xs text-slate-500">
+              <div className="bg-white rounded-2xl border border-amber-200/80 p-10 text-center text-xs text-stone-500">
                 Nessun appuntamento corrisponde ai filtri selezionati.
               </div>
             ) : agendaView === "lista" ? (
-              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs divide-y divide-slate-100">
+              <div className="bg-white rounded-2xl border border-amber-200/80 overflow-hidden shadow-xs divide-y divide-amber-100">
                 {visibleBookings.map((row) => {
                   const waText = encodeURIComponent(
                     `Ciao! Ti scriviamo da ${SALON_CONFIG.salonName} per l'appuntamento di ${row.pet} (${row.service}, ${row.time}).`
@@ -742,14 +782,14 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
                   return (
                     <div
                       key={row.id}
-                      className="p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3 hover:bg-slate-50/70 transition"
+                      className="p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3 hover:bg-[#fbf7f1]/70 transition"
                     >
                       <div className="space-y-1.5 min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-100 text-stone-600">
                             {row.id}
                           </span>
-                          <span className="font-black text-sm text-slate-900">{row.pet}</span>
+                          <span className="font-black text-sm text-stone-900">{row.pet}</span>
                           <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-200">
                             {row.size}
                           </span>
@@ -762,7 +802,7 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
                                 `${row.pet} spostato in ${e.target.value}`
                               )
                             }
-                            className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200 cursor-pointer"
+                            className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-200 cursor-pointer"
                             title="Cambia postazione"
                           >
                             {STATIONS.map((st) => (
@@ -774,7 +814,7 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
                           {sourceBadge(row.source)}
                         </div>
 
-                        <p className="text-xs text-slate-600">
+                        <p className="text-xs text-stone-600">
                           <strong>{row.service}</strong> · {row.time} · {row.owner} ({row.phone})
                         </p>
 
@@ -784,7 +824,7 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
                               value={noteDraft}
                               onChange={(e) => setNoteDraft(e.target.value)}
                               placeholder="Aggiungi nota interna (es. nodi, carattere)..."
-                              className="flex-1 px-2.5 py-1 rounded-lg border border-slate-300 text-xs"
+                              className="flex-1 px-2.5 py-1 rounded-lg border border-amber-200 text-xs"
                             />
                             <button
                               type="button"
@@ -796,14 +836,14 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
                                 );
                                 setEditingNoteId(null);
                               }}
-                              className="px-2.5 py-1 rounded-lg bg-teal-700 text-white text-[11px] font-bold"
+                              className="px-2.5 py-1 rounded-lg bg-amber-800 text-white text-[11px] font-bold"
                             >
                               Salva
                             </button>
                             <button
                               type="button"
                               onClick={() => setEditingNoteId(null)}
-                              className="px-2 py-1 rounded-lg text-[11px] text-slate-500 hover:bg-slate-100"
+                              className="px-2 py-1 rounded-lg text-[11px] text-stone-500 hover:bg-slate-100"
                             >
                               Annulla
                             </button>
@@ -821,7 +861,7 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
                                 setEditingNoteId(row.id);
                                 setNoteDraft(row.notes || "");
                               }}
-                              className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-400 hover:text-slate-700"
+                              className="inline-flex items-center gap-1 text-[11px] font-semibold text-stone-400 hover:text-stone-700"
                             >
                               <Pencil className="w-3 h-3" /> {row.notes ? "Modifica nota" : "Aggiungi nota"}
                             </button>
@@ -830,7 +870,7 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
                       </div>
 
                       <div className="flex flex-wrap items-center gap-2 shrink-0">
-                        <span className="font-black text-sm text-slate-900 mr-1">
+                        <span className="font-black text-sm text-stone-900 mr-1">
                           {row.price} €
                         </span>
 
@@ -854,7 +894,7 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
                               ? "bg-amber-100 text-amber-900 border-amber-300"
                               : row.status === "In arrivo"
                               ? "bg-sky-50 text-sky-800 border-sky-200"
-                              : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"
+                              : "bg-white text-stone-700 border-amber-200 hover:bg-slate-100"
                           }`}
                           title="Clicca per avanzare lo stato"
                         >
@@ -873,7 +913,7 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
                             <button
                               type="button"
                               onClick={() => setConfirmDeleteId(null)}
-                              className="px-2 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-[11px] font-bold"
+                              className="px-2 py-1.5 rounded-xl bg-slate-100 text-stone-600 text-[11px] font-bold"
                             >
                               No
                             </button>
@@ -882,7 +922,7 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
                           <button
                             type="button"
                             onClick={() => setConfirmDeleteId(row.id)}
-                            className="p-2 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 transition"
+                            className="p-2 rounded-xl text-stone-400 hover:text-red-600 hover:bg-red-50 transition"
                             title="Elimina appuntamento"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -901,44 +941,44 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
                   return (
                     <div
                       key={st}
-                      className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3 shadow-xs"
+                      className="bg-white rounded-2xl border border-amber-200/80 p-4 space-y-3 shadow-xs"
                     >
                       <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-                        <h3 className="font-black text-sm text-slate-900">Postazione {st}</h3>
-                        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-teal-50 text-teal-800">
+                        <h3 className="font-black text-sm text-stone-900">Postazione {st}</h3>
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-950">
                           {colRows.length}
                         </span>
                       </div>
                       <div className="space-y-2.5">
                         {colRows.length === 0 ? (
-                          <p className="text-xs text-slate-400 py-4 text-center">
+                          <p className="text-xs text-stone-400 py-4 text-center">
                             Nessun cane in questa postazione
                           </p>
                         ) : (
                           colRows.map((row) => (
                             <div
                               key={row.id}
-                              className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2"
+                              className="p-3 rounded-xl bg-[#fbf7f1] border border-amber-200/80/80 space-y-2"
                             >
                               <div className="flex items-start justify-between gap-2">
                                 <div>
-                                  <p className="font-black text-xs text-slate-900">{row.pet}</p>
-                                  <p className="text-[11px] text-slate-600">
+                                  <p className="font-black text-xs text-stone-900">{row.pet}</p>
+                                  <p className="text-[11px] text-stone-600">
                                     {row.service} · {row.size}
                                   </p>
                                 </div>
-                                <span className="font-black text-xs text-teal-800">
+                                <span className="font-black text-xs text-amber-900">
                                   {row.price} €
                                 </span>
                               </div>
-                              <div className="flex items-center justify-between gap-2 text-[11px] text-slate-500">
+                              <div className="flex items-center justify-between gap-2 text-[11px] text-stone-500">
                                 <span>{row.time}</span>
                                 {sourceBadge(row.source)}
                               </div>
                               <button
                                 type="button"
                                 onClick={() => cycleStatus(row)}
-                                className="w-full py-1.5 rounded-lg bg-white border border-slate-300 hover:bg-slate-100 text-[11px] font-bold text-slate-800 transition"
+                                className="w-full py-1.5 rounded-lg bg-white border border-amber-200 hover:bg-slate-100 text-[11px] font-bold text-slate-800 transition"
                               >
                                 {row.status} →
                               </button>
@@ -956,16 +996,16 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
 
         {/* TAB 2: CLIENTI & SCHEDE CANI */}
         {tab === "clienti" && (
-          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+          <div className="bg-white rounded-2xl border border-amber-200/80 overflow-hidden shadow-xs">
             <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-              <h2 className="font-black text-sm text-slate-900">
+              <h2 className="font-black text-sm text-stone-900">
                 Rubrica Clienti & Storico Cani
               </h2>
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-stone-500">
                 {clientDirectory.length} profili attivi
               </span>
             </div>
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-amber-100">
               {clientDirectory.map((c) => (
                 <div
                   key={c.key}
@@ -973,19 +1013,19 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-black text-sm text-slate-900">{c.pet}</span>
+                      <span className="font-black text-sm text-stone-900">{c.pet}</span>
                       <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-200">
                         Taglia {c.size}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-600">
+                    <p className="text-xs text-stone-600">
                       {c.owner} · <span className="inline-flex items-center gap-1"><Phone className="w-3 h-3" /> {c.phone}</span> · Ultimo: {c.lastService}
                     </p>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
                     <div className="text-right">
-                      <p className="text-xs font-black text-slate-900">{c.totalSpent} €</p>
-                      <p className="text-[11px] text-slate-500">{c.visits} appuntament{c.visits === 1 ? "o" : "i"}</p>
+                      <p className="text-xs font-black text-stone-900">{c.totalSpent} €</p>
+                      <p className="text-[11px] text-stone-500">{c.visits} appuntament{c.visits === 1 ? "o" : "i"}</p>
                     </div>
                     <button
                       type="button"
@@ -998,7 +1038,7 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
                         );
                         setTab("nuovo");
                       }}
-                      className="px-3 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-900 border border-teal-200 text-xs font-bold transition"
+                      className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-200 text-xs font-bold transition"
                     >
                       + Riprenota
                     </button>
@@ -1012,7 +1052,7 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
         {/* TAB 3: RICHIAMI MANTO */}
         {tab === "richiami" && (
           <div className="grid lg:grid-cols-12 gap-5 items-start">
-            <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100 shadow-xs">
+            <div className="lg:col-span-8 bg-white rounded-2xl border border-amber-200/80 divide-y divide-amber-100 shadow-xs">
               {recalls.map((item) => {
                 const msg = encodeURIComponent(
                   `Ciao ${item.owner}! È passato il periodo consigliato per il manto di ${item.pet} (${item.due}). Vuoi bloccare un posto questa settimana da ${SALON_CONFIG.shortName}?`
@@ -1024,12 +1064,12 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
                   >
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-black text-sm text-slate-900">{item.pet}</span>
+                        <span className="font-black text-sm text-stone-900">{item.pet}</span>
                         <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-200">
                           {item.due}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-600">
+                      <p className="text-xs text-stone-600">
                         {item.owner} · {item.phone}
                       </p>
                     </div>
@@ -1038,7 +1078,7 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
                         href={`https://wa.me/${cleanPhoneForWa(item.phone)}?text=${msg}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1 px-2.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-700"
+                        className="inline-flex items-center gap-1 px-2.5 py-2 rounded-xl border border-amber-200/80 hover:bg-[#fbf7f1] text-xs font-bold text-stone-700"
                       >
                         <ExternalLink className="w-3.5 h-3.5" /> Apri WA
                       </a>
@@ -1046,7 +1086,7 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
                         <button
                           type="button"
                           onClick={() => handleSendRecall(item)}
-                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold transition"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-800 hover:bg-amber-900 text-white text-xs font-bold transition"
                         >
                           <MessageSquare className="w-3.5 h-3.5" /> Segna inviato
                         </button>
@@ -1063,38 +1103,38 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
 
             <form
               onSubmit={handleAddRecall}
-              className="lg:col-span-4 bg-white rounded-2xl border border-slate-200 p-4 space-y-3 shadow-xs"
+              className="lg:col-span-4 bg-white rounded-2xl border border-amber-200/80 p-4 space-y-3 shadow-xs"
             >
-              <h3 className="font-black text-sm text-slate-900">Aggiungi richiamo manuale</h3>
+              <h3 className="font-black text-sm text-stone-900">Aggiungi richiamo manuale</h3>
               <input
                 required
                 value={recallPet}
                 onChange={(e) => setRecallPet(e.target.value)}
                 placeholder="Cane e razza (es. Kira Spitz)"
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs"
+                className="w-full px-3 py-2 rounded-xl border border-amber-200 text-xs"
               />
               <input
                 required
                 value={recallOwner}
                 onChange={(e) => setRecallOwner(e.target.value)}
                 placeholder="Nome proprietario"
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs"
+                className="w-full px-3 py-2 rounded-xl border border-amber-200 text-xs"
               />
               <input
                 value={recallPhone}
                 onChange={(e) => setRecallPhone(e.target.value)}
                 placeholder="WhatsApp (+39...)"
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs"
+                className="w-full px-3 py-2 rounded-xl border border-amber-200 text-xs"
               />
               <input
                 value={recallDue}
                 onChange={(e) => setRecallDue(e.target.value)}
                 placeholder="Motivo (es. Manto a 7 settimane)"
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs"
+                className="w-full px-3 py-2 rounded-xl border border-amber-200 text-xs"
               />
               <button
                 type="submit"
-                className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold inline-flex items-center justify-center gap-1.5"
+                className="w-full py-2.5 rounded-xl bg-amber-950 hover:bg-amber-900 text-white text-xs font-bold inline-flex items-center justify-center gap-1.5"
               >
                 <Plus className="w-3.5 h-3.5" /> Aggiungi in lista richiami
               </button>
@@ -1115,12 +1155,12 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
               return (
                 <div
                   key={srv.id}
-                  className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3 shadow-xs"
+                  className="bg-white rounded-2xl border border-amber-200/80 p-4 space-y-3 shadow-xs"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <h3 className="font-black text-sm text-slate-900">{srv.title}</h3>
-                      <p className="text-[11px] text-slate-500">
+                      <h3 className="font-black text-sm text-stone-900">{srv.title}</h3>
+                      <p className="text-[11px] text-stone-500">
                         Postazione {srv.station} · Anteprima: Piccola{" "}
                         {Math.max(18, baseNum - 4)}€ · Media {baseNum}€ · Grande {baseNum + 10}€
                       </p>
@@ -1135,11 +1175,11 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
                         [srv.id]: { ...edit, desc: e.target.value },
                       }))
                     }
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-700"
+                    className="w-full px-3 py-2 rounded-xl border border-amber-200/80 text-xs text-stone-700"
                   />
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 flex items-center gap-1 mb-1">
+                      <label className="text-[11px] font-bold text-stone-600 flex items-center gap-1 mb-1">
                         <Euro className="w-3 h-3" /> Prezzo base Media (€)
                       </label>
                       <input
@@ -1153,11 +1193,11 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
                             [srv.id]: { ...edit, price: e.target.value },
                           }))
                         }
-                        className="w-full px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-bold"
+                        className="w-full px-3 py-1.5 rounded-xl border border-amber-200 text-xs font-bold"
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 flex items-center gap-1 mb-1">
+                      <label className="text-[11px] font-bold text-stone-600 flex items-center gap-1 mb-1">
                         <Clock className="w-3 h-3" /> Durata (min)
                       </label>
                       <input
@@ -1171,14 +1211,14 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
                             [srv.id]: { ...edit, duration: e.target.value },
                           }))
                         }
-                        className="w-full px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-bold"
+                        className="w-full px-3 py-1.5 rounded-xl border border-amber-200 text-xs font-bold"
                       />
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => handleSaveService(srv.id)}
-                    className="w-full py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 transition"
+                    className="w-full py-2 rounded-xl bg-amber-950 hover:bg-amber-900 text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 transition"
                   >
                     <Save className="w-3.5 h-3.5" /> Salva e sincronizza sito cliente
                   </button>
@@ -1192,13 +1232,13 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
         {tab === "nuovo" && (
           <form
             onSubmit={handleCreateManual}
-            className="bg-white rounded-2xl border border-slate-200 p-5 max-w-xl space-y-4 shadow-xs"
+            className="bg-white rounded-2xl border border-amber-200/80 p-5 max-w-xl space-y-4 shadow-xs"
           >
             <div className="flex items-center justify-between">
-              <h2 className="font-black text-base text-slate-900">
+              <h2 className="font-black text-base text-stone-900">
                 Inserisci appuntamento da banco / telefono
               </h2>
-              <span className="text-xs font-black px-2.5 py-1 rounded-lg bg-teal-50 text-teal-800 border border-teal-200">
+              <span className="text-xs font-black px-2.5 py-1 rounded-lg bg-amber-50 text-amber-900 border border-amber-200">
                 Stimato: {estimatedNewPrice} €
               </span>
             </div>
@@ -1209,7 +1249,7 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
                   value={newPet}
                   onChange={(e) => setNewPet(e.target.value)}
                   placeholder="Es. Milo (Golden)"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs"
+                  className="w-full px-3 py-2 rounded-xl border border-amber-200 text-xs"
                 />
               </div>
               <div>
@@ -1218,7 +1258,7 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
                   value={newOwner}
                   onChange={(e) => setNewOwner(e.target.value)}
                   placeholder="Es. Laura Bianchi"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs"
+                  className="w-full px-3 py-2 rounded-xl border border-amber-200 text-xs"
                 />
               </div>
               <div>
@@ -1227,7 +1267,7 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
                   value={newPhone}
                   onChange={(e) => setNewPhone(e.target.value)}
                   placeholder="+39 347..."
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs"
+                  className="w-full px-3 py-2 rounded-xl border border-amber-200 text-xs"
                 />
               </div>
               <div>
@@ -1235,7 +1275,7 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
                 <select
                   value={newSize}
                   onChange={(e) => setNewSize(e.target.value as "Piccola" | "Media" | "Grande")}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white"
+                  className="w-full px-3 py-2 rounded-xl border border-amber-200 text-xs bg-white"
                 >
                   <option value="Piccola">Piccola</option>
                   <option value="Media">Media</option>
@@ -1247,7 +1287,7 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
                 <select
                   value={newService}
                   onChange={(e) => setNewService(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white"
+                  className="w-full px-3 py-2 rounded-xl border border-amber-200 text-xs bg-white"
                 >
                   {services.map((s) => (
                     <option key={s.id} value={s.title}>
@@ -1257,12 +1297,63 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
                 </select>
               </div>
               <div>
-                <label className="text-xs font-bold block mb-1">Orario</label>
+                <label className="text-xs font-bold block mb-1">Data</label>
                 <input
-                  value={newTime}
-                  onChange={(e) => setNewTime(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs"
+                  type="date"
+                  value={newDateIso}
+                  onChange={(e) => setNewDateIso(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-amber-200 text-xs bg-white"
                 />
+              </div>
+              <div>
+                <label className="text-xs font-bold block mb-1">Ora inizio</label>
+                <input
+                  type="time"
+                  value={newStartTime}
+                  onChange={(e) => setNewStartTime(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-amber-200 text-xs bg-white"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold block mb-1">Postazione (auto se vuota)</label>
+                <select
+                  value={newStation}
+                  onChange={(e) => setNewStation(e.target.value as "" | Station)}
+                  className="w-full px-3 py-2 rounded-xl border border-amber-200 text-xs bg-white"
+                >
+                  <option value="">Automatica da servizio</option>
+                  {STATIONS.map((st) => (
+                    <option key={st} value={st}>
+                      {st}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-bold block mb-1.5">Alert Pet &amp; Mantello</label>
+              <div className="flex flex-wrap gap-1.5">
+                {PET_TAGS.map((tag) => {
+                  const active = newPetTags.includes(tag);
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() =>
+                        setNewPetTags((prev) =>
+                          prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+                        )
+                      }
+                      className={`px-2.5 py-1 rounded-full text-xs font-bold border transition ${
+                        active
+                          ? "bg-rose-600 text-white border-rose-600"
+                          : "bg-[#fbf7f1] text-stone-600 border-amber-200/80 hover:bg-slate-100"
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  );
+                })}
               </div>
             </div>
             <div>
@@ -1271,12 +1362,12 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
                 value={newNotes}
                 onChange={(e) => setNewNotes(e.target.value)}
                 placeholder="Es. Nodi sotto le orecchie, usare shampoo delicato"
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs"
+                className="w-full px-3 py-2 rounded-xl border border-amber-200 text-xs"
               />
             </div>
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-xl bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold inline-flex items-center gap-1.5 transition"
+              className="px-5 py-2.5 rounded-xl bg-amber-800 hover:bg-amber-900 text-white text-xs font-bold inline-flex items-center gap-1.5 transition"
             >
               <CheckCircle2 className="w-4 h-4" /> Aggiungi in agenda
             </button>

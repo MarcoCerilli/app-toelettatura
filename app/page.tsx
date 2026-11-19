@@ -140,7 +140,7 @@ export default function ToelettaturaDemoPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   useEffect(() => {
-    fetch("/api/services")
+    fetch(`/api/services?service=${encodeURIComponent(service)}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (!data) return;
@@ -148,13 +148,15 @@ export default function ToelettaturaDemoPage() {
           setServices(data.services);
         }
         if (Array.isArray(data.slots) && data.slots.length > 0) {
-          setSlots(data.slots.map((s: { slot: string }) => s.slot));
+          const nextSlots = data.slots.map((s: { slot: string }) => s.slot);
+          setSlots(nextSlots);
+          setSlot((curr) => (nextSlots.includes(curr) ? curr : nextSlots[0]));
         }
       })
       .catch(() => {
         // Keep fallback data if offline
       });
-  }, []);
+  }, [service, bookedId]);
 
   const submitBooking = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -446,13 +448,13 @@ export default function ToelettaturaDemoPage() {
                     <button
                       type="button"
                       onClick={() => setBookedId(null)}
-                      className="flex-1 py-2.5 rounded-xl border border-stone-300 text-xs font-bold hover:bg-stone-50"
+                      className="flex-1 py-2.5 rounded-xl border border-amber-200 bg-[#fbf7f1] hover:bg-amber-50 text-stone-800 text-xs font-bold transition"
                     >
                       Nuova prenotazione
                     </button>
                     <Link
                       href="/admin"
-                      className="flex-1 py-2.5 rounded-xl bg-stone-900 text-white text-xs font-bold inline-flex items-center justify-center gap-1"
+                      className="flex-1 py-2.5 rounded-xl bg-amber-950 hover:bg-amber-900 text-amber-50 text-xs font-bold inline-flex items-center justify-center gap-1 transition"
                     >
                       Vedi in Admin <ArrowRight className="w-3.5 h-3.5" />
                     </Link>

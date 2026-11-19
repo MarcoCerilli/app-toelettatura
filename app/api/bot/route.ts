@@ -3,8 +3,11 @@ import { ai } from "@/lib/gemini";
 import { SALON_CONFIG } from "@/lib/salon-config";
 import {
   addBooking,
-  AVAILABLE_SLOTS,
+  FreeSlotOption,
+  getAvailableSlotsForService,
   getServices,
+  hasStationConflict,
+  inferScheduleFromText,
   priceForServiceAndSize,
 } from "@/lib/server-store";
 
@@ -13,6 +16,8 @@ export interface BotDraft {
   size?: "Piccola" | "Media" | "Grande";
   service?: string;
   slot?: string;
+  dateIso?: string;
+  startTime?: string;
   pet?: string;
   phone?: string;
 }
@@ -51,16 +56,46 @@ function detectService(text: string, services: ReturnType<typeof getServices>): 
   return undefined;
 }
 
-function detectSlot(text: string): string | undefined {
+function detectSlot(
+  text: string,
+  freeSlots: FreeSlotOption[]
+): { slot: string; dateIso: string; startTime: string } | undefined {
   const t = normalize(text);
-  for (const slot of AVAILABLE_SLOTS) {
-    const clean = slot.replace(" (ultimo posto)", "").toLowerCase();
-    if (t.includes(clean)) return slot;
+  for (const item of freeSlots) {
+    if (t.includes(item.slot.toLowerCase())) {
+      return { slot: item.slot, dateIso: item.dateIso, startTime: item.startTime };
+    }
   }
-  if (t.includes("oggi") || t.includes("15:00")) return AVAILABLE_SLOTS[0];
-  if (t.includes("domani") || t.includes("10:30")) return AVAILABLE_SLOTS[1];
-  if (t.includes("gioved") || t.includes("11:00")) return AVAILABLE_SLOTS[2];
-  if (t.includes("sabat") || t.includes("09:00")) return AVAILABLE_SLOTS[3];
+  const hasTime = /\d{1,2}:\d{2}/.test(t);
+  const hasDayWord =
+    t.includes("oggi") ||
+    t.includes("domani") ||
+    t.includes("luned") ||
+    t.includes("marted") ||
+    t.includes("mercoled") ||
+    t.includes("gioved") ||
+    t.includes("venerd") ||
+    t.includes("sabat");
+  if (hasTime || hasDayWord) {
+    const inferred = inferScheduleFromText(text);
+    const matchingFree = freeSlots.find(
+      (s) => s.dateIso === inferred.dateIso && s.startTime === inferred.startTime
+    );
+    if (matchingFree) {
+      return {
+        slot: matchingFree.slot,
+        dateIso: matchingFree.dateIso,
+        startTime: matchingFree.startTime,
+      };
+    }
+    if (hasTime) {
+      return {
+        slot: text.trim().slice(0, 40),
+        dateIso: inferred.dateIso,
+        startTime: inferred.startTime,
+      };
+    }
+  }
   return undefined;
 }
 
@@ -83,8 +118,16 @@ export async function POST(req: Request) {
     const foundService = detectService(message, services);
     if (foundService) draft.service = foundService;
 
-    const foundSlot = detectSlot(message);
-    if (foundSlot) draft.slot = foundSlot;
+    const freeSlots = getAvailableSlotsForService(draft.service, 4);
+
+    if (draft.step !== "details") {
+      const foundSlot = detectSlot(message, freeSlots);
+      if (foundSlot) {
+        draft.slot = foundSlot.slot;
+        draft.dateIso = foundSlot.dateIso;
+        draft.startTime = foundSlot.startTime;
+      }
+    }
 
     const wantsBooking =
       draft.step === "size" ||
@@ -99,6 +142,31 @@ export async function POST(req: Request) {
 
     // Step: collecting pet name and phone in "details"
     if (draft.step === "details" && draft.size && draft.service && draft.slot) {
+      const matchedSrv = services.find((s) => s.title === draft.service) || services[0];
+      const inferred = inferScheduleFromText(draft.slot);
+      const targetDate = draft.dateIso || inferred.dateIso;
+      const targetStart = draft.startTime || inferred.startTime;
+
+      const conflict = hasStationConflict({
+        dateIso: targetDate,
+        startTime: targetStart,
+        durationMin: matchedSrv.durationMin,
+        station: matchedSrv.station,
+      });
+
+      if (conflict) {
+        const refreshed = getAvailableSlotsForService(draft.service, 4);
+        draft.slot = undefined;
+        draft.dateIso = undefined;
+        draft.startTime = undefined;
+        draft.step = "slot";
+        return NextResponse.json({
+          reply: `Ops! Nel frattempo la postazione ${matchedSrv.station} è stata occupata alle ${targetStart}. Ecco i primi orari realmente liberi per ${draft.service}:`,
+          suggestions: refreshed.map((s) => s.slot),
+          draft,
+        });
+      }
+
       const phoneMatch = message.match(/(\+?\d[\d\s()-]{6,18}\d)/);
       const phone = phoneMatch ? phoneMatch[1].trim() : "+39 347 220 1188";
       const petCandidate = message
@@ -114,6 +182,8 @@ export async function POST(req: Request) {
         phone,
         service: draft.service,
         time: draft.slot,
+        dateIso: targetDate,
+        startTime: targetStart,
         source: "bot",
       });
 
@@ -144,18 +214,42 @@ export async function POST(req: Request) {
         });
       }
 
+      const matchedSrv = services.find((s) => s.title === draft.service) || services[0];
+      const realFreeSlots = getAvailableSlotsForService(draft.service, 4);
+
+      if (draft.slot) {
+        const inferred = inferScheduleFromText(draft.slot);
+        const conflict = hasStationConflict({
+          dateIso: draft.dateIso || inferred.dateIso,
+          startTime: draft.startTime || inferred.startTime,
+          durationMin: matchedSrv.durationMin,
+          station: matchedSrv.station,
+        });
+        if (conflict) {
+          draft.slot = undefined;
+          draft.dateIso = undefined;
+          draft.startTime = undefined;
+          draft.step = "slot";
+          return NextResponse.json({
+            reply: `La postazione ${matchedSrv.station} è già occupata in quell'orario. Ecco gli orari realmente liberi per ${draft.service}:`,
+            suggestions: realFreeSlots.map((s) => s.slot),
+            draft,
+          });
+        }
+      }
+
       if (!draft.slot) {
         draft.step = "slot";
         return NextResponse.json({
-          reply: `Ottima scelta: ${draft.service} per taglia ${draft.size} (${priceForServiceAndSize(draft.service, draft.size, services)} €). Ecco i prossimi orari liberi:`,
-          suggestions: AVAILABLE_SLOTS.map((s) => s.replace(" (ultimo posto)", "")),
+          reply: `Ottima scelta: ${draft.service} per taglia ${draft.size} (${priceForServiceAndSize(draft.service, draft.size, services)} € · Postazione ${matchedSrv.station}). Ecco i prossimi orari liberi in agenda:`,
+          suggestions: realFreeSlots.map((s) => s.slot),
           draft,
         });
       }
 
       draft.step = "details";
       return NextResponse.json({
-        reply: `Ci siamo quasi! Ho riservato provvisoriamente ${draft.slot} per ${draft.service} (${draft.size}). Scrivimi il nome del cane (e razza) più il tuo numero WhatsApp per confermare (es. "Milo Labrador, 347 1234567").`,
+        reply: `Ci siamo quasi! Ho verificato la disponibilità per ${draft.slot} (${draft.service}, ${draft.size}). Scrivimi il nome del cane (e razza) più il tuo numero WhatsApp per confermare (es. "Milo Labrador, 347 1234567").`,
         suggestions: ["Teo Barboncino, 347 2201188", "Luna Maltese, 333 4412201"],
         draft,
       });
@@ -198,7 +292,7 @@ export async function POST(req: Request) {
           .join("; ");
         const prompt = `Sei l'assistente virtuale ufficiale di "${SALON_CONFIG.salonName}" (${SALON_CONFIG.address}, ${SALON_CONFIG.hours}).
 Servizi disponibili: ${serviceSummary}.
-Orari liberi: ${AVAILABLE_SLOTS.join(", ")}.
+Orari liberi: ${freeSlots.map((s) => s.slot).join(", ")}.
 Rispondi in italiano in modo cordiale, breve (max 3 frasi) e pratico alla domanda del cliente, invitandolo eventualmente a prenotare.
 Domanda cliente: "${message}"`;
 

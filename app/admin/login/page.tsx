@@ -58,38 +58,38 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center px-4 py-10">
-      <div className="max-w-md w-full mx-auto space-y-6">
+    <div className="min-h-screen bg-[#f6efe6] text-stone-800 flex flex-col justify-center px-4 py-10">
+      <div className="max-w-md w-full mx-auto space-y-5">
         <div className="flex items-center justify-between text-xs">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-slate-400 hover:text-white font-semibold transition"
+            className="inline-flex items-center gap-1.5 text-stone-600 hover:text-amber-950 font-bold transition"
           >
             <ArrowLeft className="w-3.5 h-3.5" /> Torna al sito cliente
           </Link>
-          <span className="inline-flex items-center gap-1 text-teal-400 font-bold">
-            <ShieldCheck className="w-3.5 h-3.5" /> Accesso protetto
+          <span className="inline-flex items-center gap-1 text-amber-800 font-bold">
+            <ShieldCheck className="w-3.5 h-3.5" /> Area Riservata
           </span>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+        <div className="bg-white border border-amber-200/80 rounded-3xl p-6 sm:p-8 shadow-xl space-y-6">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-teal-600 text-white flex items-center justify-center shrink-0">
+            <div className="w-11 h-11 rounded-2xl bg-amber-900 text-amber-50 flex items-center justify-center shrink-0 shadow-xs">
               <Scissors className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="font-black text-lg text-white leading-tight">
-                Admin {SALON_CONFIG.shortName}
+              <h1 className="font-black text-lg text-stone-900 leading-tight">
+                {SALON_CONFIG.salonName}
               </h1>
-              <p className="text-xs text-slate-400">
-                Agenda postazioni, richiami WhatsApp e listino interno
+              <p className="text-xs text-stone-500">
+                Accesso staff · Agenda, postazioni e listino
               </p>
             </div>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-1.5">
-              <label htmlFor="admin-email" className="block text-xs font-bold text-slate-300">
+              <label htmlFor="admin-email" className="block text-xs font-bold text-stone-700">
                 Email staff
               </label>
               <input
@@ -100,12 +100,12 @@ export default function AdminLoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin@casamanto.it"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#fbf7f1] border border-amber-200 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-600"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label htmlFor="admin-password" className="block text-xs font-bold text-slate-300">
+              <label htmlFor="admin-password" className="block text-xs font-bold text-stone-700">
                 Password
               </label>
               <input
@@ -116,12 +116,12 @@ export default function AdminLoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••••"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#fbf7f1] border border-amber-200 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-600"
               />
             </div>
 
             {error && (
-              <p className="text-xs text-red-300 bg-red-950/60 border border-red-800/80 rounded-xl px-3 py-2">
+              <p className="text-xs text-rose-800 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">
                 {error}
               </p>
             )}
@@ -129,27 +129,27 @@ export default function AdminLoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white text-sm font-black inline-flex items-center justify-center gap-2 transition disabled:opacity-60"
+              className="w-full py-3 rounded-2xl bg-amber-800 hover:bg-amber-900 text-white text-sm font-black inline-flex items-center justify-center gap-2 transition shadow-sm disabled:opacity-60"
             >
               <Lock className="w-4 h-4" />
-              {loading ? "Verifica in corso..." : "Accedi all'Area Admin"}
+              {loading ? "Verifica in corso..." : "Accedi al Gestionale"}
             </button>
           </form>
 
           {demoMode && (
-            <div className="pt-4 border-t border-slate-800 space-y-2.5">
-              <div className="flex items-center justify-between text-[11px] text-slate-400">
-                <span className="inline-flex items-center gap-1 font-semibold text-amber-300">
-                  <Sparkles className="w-3.5 h-3.5" /> Modalità Demo attiva
+            <div className="pt-4 border-t border-amber-100 space-y-2.5">
+              <div className="flex items-center justify-between text-[11px] text-stone-500">
+                <span className="inline-flex items-center gap-1 font-bold text-amber-800">
+                  <Sparkles className="w-3.5 h-3.5" /> Modalità Test attiva
                 </span>
-                <span>Cookie HttpOnly firmato</span>
+                <span>Sessione protetta</span>
               </div>
               <button
                 type="button"
                 onClick={fillDemoCredentials}
-                className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold inline-flex items-center justify-center gap-1.5 border border-slate-700 transition"
+                className="w-full py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-950 text-xs font-bold inline-flex items-center justify-center gap-1.5 border border-amber-200 transition"
               >
-                <KeyRound className="w-3.5 h-3.5 text-teal-400" /> Compila credenziali demo
+                <KeyRound className="w-3.5 h-3.5 text-amber-800" /> Compila credenziali di test
               </button>
             </div>
           )}
