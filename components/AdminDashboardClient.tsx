@@ -247,7 +247,9 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
 
   const updateBookingPatch = async (
     id: string,
-    patch: Partial<Pick<BookingRecord, "status" | "station" | "notes" | "petTags">>,
+    patch: Partial<
+      Pick<BookingRecord, "status" | "station" | "notes" | "petTags" | "dateIso" | "startTime" | "time">
+    >,
     feedback?: string
   ) => {
     const res = await fetch(`/api/bookings/${encodeURIComponent(id)}`, {
