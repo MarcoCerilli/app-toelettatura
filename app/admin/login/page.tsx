@@ -2,12 +2,10 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ArrowLeft, KeyRound, Lock, Scissors, ShieldCheck, Sparkles } from "lucide-react";
 import { SALON_CONFIG } from "@/lib/salon-config";
 
 export default function AdminLoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [demoMode, setDemoMode] = useState(false);
@@ -15,17 +13,17 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetch("/api/auth/session")
+    fetch("/api/auth/session", { cache: "no-store", credentials: "same-origin" })
       .then((res) => res.json())
       .then((data) => {
         if (data.authenticated) {
-          router.replace("/admin");
+          window.location.assign("/admin");
           return;
         }
         setDemoMode(Boolean(data.demoMode));
       })
       .catch(() => {});
-  }, [router]);
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,6 +33,7 @@ export default function AdminLoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
         body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
@@ -42,8 +41,7 @@ export default function AdminLoginPage() {
         setError(data.error || "Accesso negato.");
         return;
       }
-      router.replace("/admin");
-      router.refresh();
+      window.location.assign("/admin");
     } catch {
       setError("Errore di connessione. Riprova.");
     } finally {

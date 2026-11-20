@@ -25,8 +25,14 @@ export async function POST(req: Request) {
       user: { email: session.email, name: session.name, role: session.role },
     });
 
+    const forwardedProto = req.headers.get("x-forwarded-proto");
+    const isHttps =
+      forwardedProto === "https" ||
+      req.url.startsWith("https://") ||
+      Boolean(process.env.VERCEL);
+
     response.cookies.set({
-      ...getSessionCookieOptions(),
+      ...getSessionCookieOptions(isHttps),
       value: token,
     });
 

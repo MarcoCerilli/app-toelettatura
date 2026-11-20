@@ -16,8 +16,20 @@ const globalForAuth = globalThis as unknown as {
   __casamantoDemoHash?: { salt: string; hash: string };
 };
 
+function cleanEnv(val: string | undefined): string {
+  if (!val) return "";
+  const trimmed = val.trim();
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1).trim();
+  }
+  return trimmed;
+}
+
 function getAuthSecret(): string {
-  const envSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+  const envSecret = cleanEnv(process.env.AUTH_SECRET) || cleanEnv(process.env.NEXTAUTH_SECRET);
   if (envSecret && envSecret.length >= 16) {
     return envSecret;
   }
@@ -30,8 +42,8 @@ function getAuthSecret(): string {
 }
 
 function getDemoCredentials(): { email: string; salt: string; hash: string; isDemoMode: boolean } {
-  const envEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-  const envPass = process.env.ADMIN_PASSWORD;
+  const envEmail = cleanEnv(process.env.ADMIN_EMAIL).toLowerCase();
+  const envPass = cleanEnv(process.env.ADMIN_PASSWORD);
 
   if (envEmail && envPass) {
     const salt = crypto.createHash("sha256").update(envEmail).digest("hex").slice(0, 16);
@@ -56,7 +68,7 @@ function getDemoCredentials(): { email: string; salt: string; hash: string; isDe
 }
 
 export function isDemoAuthMode(): boolean {
-  return !(process.env.ADMIN_EMAIL?.trim() && process.env.ADMIN_PASSWORD);
+  return !(cleanEnv(process.env.ADMIN_EMAIL) && cleanEnv(process.env.ADMIN_PASSWORD));
 }
 
 export function verifyAdminCredentials(emailInput: string, passwordInput: string): AdminSession | null {
@@ -131,12 +143,12 @@ export async function getAdminSession(): Promise<AdminSession | null> {
   return verifySessionToken(token);
 }
 
-export function getSessionCookieOptions() {
+export function getSessionCookieOptions(isHttps?: boolean) {
   return {
     name: SESSION_COOKIE_NAME,
     httpOnly: true,
     sameSite: "lax" as const,
-    secure: process.env.NODE_ENV === "production",
+    secure: typeof isHttps === "boolean" ? isHttps : process.env.NODE_ENV === "production",
     path: "/",
     maxAge: SESSION_TTL_SECONDS,
   };
