@@ -28,7 +28,7 @@ const QUICK_TAGS = ["Nodi", "Paura phon", "Cucciolo", "Sensibile", "Mordace"] as
 
 const START_HOUR = 9;
 const END_HOUR = 19; // 09:00 .. 19:00
-const HOUR_HEIGHT = 78; // px per hour (tablet touch-friendly)
+const HOUR_HEIGHT = 88; // px per hour (wide, airy calendar layout)
 const HOURS = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i);
 
 const DAY_NAMES_SHORT = ["Dom", "Lun", "Mar", "Mer", "Gio", "Ven", "Sab"];
@@ -319,7 +319,8 @@ export function AdminCalendarGrid({
       </div>
 
       {/* DESKTOP / TABLET TIME-GRID (stile MyPetLab / TheFork) */}
-      <div className="hidden md:block bg-white rounded-2xl border border-amber-200/80 overflow-hidden shadow-xs">
+      <div className="hidden md:block bg-white rounded-2xl border border-amber-200/80 overflow-x-auto shadow-xs">
+        <div className={desktopMode === "week" ? "min-w-[980px]" : "min-w-[680px]"}>
         {/* Column Headers */}
         <div
           className={`grid border-b border-amber-200/80 bg-[#fbf7f1] ${
@@ -475,29 +476,29 @@ export function AdminCalendarGrid({
                         openDetail(booking);
                       }}
                       style={{
-                        top: `${topPx + 2}px`,
+                        top: `${topPx + 3}px`,
                         height: `${heightPx}px`,
-                        left: `calc(${leftPct}% + 2px)`,
-                        width: `calc(${widthPct}% - 4px)`,
+                        left: `calc(${leftPct}% + 4px)`,
+                        width: `calc(${widthPct}% - 8px)`,
                       }}
-                      className={`absolute z-10 rounded-xl px-2.5 py-1.5 text-left shadow-xs overflow-hidden transition cursor-pointer touch-manipulation active:scale-[0.99] ${cardStyleForService(
+                      className={`absolute z-10 rounded-xl px-3 py-2 text-left shadow-xs overflow-hidden transition cursor-pointer touch-manipulation active:scale-[0.99] ${cardStyleForService(
                         booking.service
                       )}`}
                     >
-                      <div className="flex items-center justify-between gap-1 leading-tight">
-                        <span className="text-[11px] font-black truncate">
-                          {booking.startTime || booking.time.slice(0, 5)} {booking.pet}
+                      <div className="flex items-center justify-between gap-1.5 leading-tight">
+                        <span className="text-xs font-black truncate">
+                          {booking.startTime || booking.time.slice(0, 5)} · {booking.pet}
                         </span>
                         {booking.source === "bot" && (
                           <Bot className="w-3.5 h-3.5 shrink-0 opacity-80" />
                         )}
                       </div>
-                      <p className="text-[10px] opacity-85 truncate mt-0.5">
+                      <p className="text-[11px] opacity-85 truncate mt-0.5">
                         {booking.service} · {booking.station}
                       </p>
-                      {heightPx >= 64 && (
+                      {heightPx >= 72 && (
                         <div className="mt-1.5 flex flex-wrap items-center gap-1">
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/75">
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/80">
                             {booking.status}
                           </span>
                           {(booking.petTags || []).slice(0, 2).map((tag) => (
@@ -516,6 +517,7 @@ export function AdminCalendarGrid({
               </div>
             );
           })}
+        </div>
         </div>
       </div>
 

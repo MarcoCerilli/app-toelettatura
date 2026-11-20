@@ -447,7 +447,7 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
     <div className="min-h-screen bg-[#f6efe6] text-stone-800 overflow-x-hidden">
       {/* Top Bar */}
       <header className="sticky top-0 z-30 bg-white border-b border-amber-200/80 shadow-xs">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3">
+        <div className="max-w-[1720px] mx-auto px-3 sm:px-6 lg:px-8 py-2.5 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-amber-800 text-white flex items-center justify-center shrink-0">
               <Scissors className="w-5 h-5" />
@@ -512,7 +512,7 @@ export function AdminDashboardClient({ userEmail, userName }: AdminDashboardClie
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-6 space-y-6">
+      <main className="max-w-[1720px] mx-auto px-3 sm:px-6 lg:px-8 py-6 space-y-6">
         {toast && (
           <div className="rounded-2xl bg-amber-950 text-amber-50 px-4 py-3 text-xs font-semibold flex items-center justify-between gap-2 shadow-lg">
             <span className="inline-flex items-center gap-2">
