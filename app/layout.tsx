@@ -9,26 +9,26 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'App Toelettatura — Prenotazioni Online & Agenda Salone',
-  description: 'Demo completa per saloni di toelettatura: pagina di prenotazione lato cliente h24, agenda per postazioni (Vasca, Tosatura, Finishing) e richiami automatici WhatsApp.',
+  title: 'Qua La Zampa Terracina — Prodotti per Animali & Toelettatura',
+  description: 'Qua La Zampa in Via Vittorio Bachelet 22, Terracina (LT): prodotti per animali, linea naturale, assistente automatico h24 e servizi di toelettatura.',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Casa Manto',
+    title: 'Qua La Zampa',
   },
   icons: {
     icon: '/icons/icon-192.png',
     apple: '/icons/icon-192.png',
   },
   openGraph: {
-    title: 'App Toelettatura — Prenotazioni Online & Agenda Salone',
-    description: 'Prenotazioni online per taglia e manto, gestione postazioni e richiami WhatsApp a 6-8 settimane per saloni di toelettatura.',
+    title: 'Qua La Zampa Terracina — Prodotti per Animali & Toelettatura',
+    description: 'Via Vittorio Bachelet 22, Terracina (LT) · Prodotti per animali, linea naturale e servizi di toelettatura.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'App Toelettatura — Prenotazioni Online & Agenda Salone',
-    description: 'Prenotazioni online per taglia e manto, gestione postazioni e richiami WhatsApp a 6-8 settimane per saloni di toelettatura.',
+    title: 'Qua La Zampa Terracina — Prodotti per Animali & Toelettatura',
+    description: 'Via Vittorio Bachelet 22, Terracina (LT) · Prodotti per animali, linea naturale e servizi di toelettatura.',
   },
 };
 

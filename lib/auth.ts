@@ -90,7 +90,7 @@ export function verifyAdminCredentials(emailInput: string, passwordInput: string
 
   return {
     email: expected.email,
-    name: "Direzione Casa Manto",
+    name: "Direzione Qua La Zampa",
     role: "admin",
     exp: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
   };

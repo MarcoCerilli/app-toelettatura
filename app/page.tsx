@@ -543,7 +543,7 @@ export default function ToelettaturaDemoPage() {
             <div className="rounded-3xl overflow-hidden shadow-lg border border-amber-100">
               <img
                 src="/images/stations.jpg"
-                alt="Le tre postazioni di toelettatura Casa Manto"
+                alt={`Le tre postazioni di ${SALON_CONFIG.shortName}`}
                 className="w-full h-72 sm:h-80 object-cover"
               />
             </div>
@@ -589,7 +589,7 @@ export default function ToelettaturaDemoPage() {
               Hai dubbi su prezzi, nodi o orari? Chiedi al Bot e prenota in chat.
             </h2>
             <p className="text-sm text-stone-600 leading-relaxed">
-              Anche alle 22:00 o la domenica, l&apos;assistente automatico di Casa Manto risponde subito, calcola il prezzo per la taglia del tuo cane e salva l&apos;appuntamento direttamente nella nostra agenda interna.
+              Anche alle 22:00 o la domenica, l&apos;assistente automatico di {SALON_CONFIG.shortName} risponde subito, calcola il prezzo per la taglia del tuo cane e salva l&apos;appuntamento direttamente nella nostra agenda interna.
             </p>
             <ul className="space-y-2 text-xs font-semibold text-stone-700">
               <li className="flex items-center gap-2">
@@ -727,7 +727,7 @@ export default function ToelettaturaDemoPage() {
               <Clock className="w-3.5 h-3.5 text-amber-400" /> {SALON_CONFIG.hours}
             </p>
             <p className="flex items-center gap-1.5">
-              <Phone className="w-3.5 h-3.5 text-amber-400" /> +39 02 4590 1122 · WhatsApp attivo
+              <Phone className="w-3.5 h-3.5 text-amber-400" /> {SALON_CONFIG.phone} · WhatsApp attivo
             </p>
           </div>
         </div>
